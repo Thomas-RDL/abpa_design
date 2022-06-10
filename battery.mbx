@@ -1,0 +1,120 @@
+/* Analytical Model for battery sizing
+
+Sources :
+> https://x-engineer.org/automotive-engineering/vehicle/electric-vehicles/ev-design-battery-calculation/
+> Arora, S., Kapoor, A., 2018. Mechanical Design and Packaging of Battery Packs for Electric Vehicles, in: Pistoia, G., Liaw, B. (Eds.), Behaviour of Lithium-Ion Batteries in Electric Vehicles, Green Energy and Technology. Springer International Publishing, Cham, pp. 175–200. https://doi.org/10.1007/978-3-319-69950-9_8
+> Barré, A., Deguilhem, B., Grolleau, S., Gérard, M., Suard, F., Riu, D., 2013. A review on lithium-ion battery ageing mechanisms and estimations for automotive applications. Journal of Power Sources 241, 680–689. https://doi.org/10.1016/j.jpowsour.2013.05.040
+> Cordoba-Arenas, A., Onori, S., Guezennec, Y., Rizzoni, G., 2015. Capacity and power fade cycle-life model for plug-in hybrid electric vehicle lithium-ion battery cells containing blended spinel and layered-oxide positive electrodes. Journal of Power Sources 278, 473–483. https://doi.org/10.1016/j.jpowsour.2014.12.047
+> De Gennaro, M., Paffumi, E., Martini, G., Giallonardo, A., Pedroso, S., Loiselle-Lapointe, A., 2020. A case study to predict the capacity fade of the battery of electrified vehicles in real-world use conditions. Case Studies on Transport Policy 8, 517–534. https://doi.org/10.1016/j.cstp.2019.11.005
+> Garcia, J., Millet, D., Tonnelier, P., Richet, S., Chenouard, R., 2017. A novel approach for global environmental performance evaluation of electric batteries for hybrid vehicles. Journal of Cleaner Production 156, 406–417. https://doi.org/10.1016/j.jclepro.2017.04.035
+> Krupp, A., Beckmann, R., Diekmann, T., Ferg, E., Schuldt, F., Agert, C., 2022. Calendar aging model for lithium-ion batteries considering the influence of cell characterization. Journal of Energy Storage 45, 103506. https://doi.org/10.1016/j.est.2021.103506
+> Nicoletti, L., Mayer, S., Brönner, M., Schockenhoff, F., Lienkamp, M., 2020. Design Parameters for the Early Development Phase of Battery Electric Vehicles. World Electric Vehicle Journal 11, 47. https://doi.org/10.3390/wevj11030047
+> Purewal, J., Wang, J., Graetz, J., Soukiazian, S., Tataria, H., Verbrugge, M.W., 2014. Degradation of lithium ion batteries employing graphite negatives and nickel–cobalt–manganese oxide + spinel manganese oxide positives: Part 2, chemical–mechanical degradation model. Journal of Power Sources 272, 1154–1161. https://doi.org/10.1016/j.jpowsour.2014.07.028
+> Sarasketa-Zabala, E., Gandiaga, I., Martinez-Laserna, E., Rodriguez-Martinez, L.M., Villarreal, I., 2015. Cycle ageing analysis of a LiFePO4/graphite cell with dynamic model validations: Towards realistic lifetime predictions. Journal of Power Sources 275, 573–587. https://doi.org/10.1016/j.jpowsour.2014.10.153
+> Sarasketa-Zabala, E., Laresgoiti, I., Alava, I., Rivas, M., Villarreal, I., Blanco, F., 2013. Validation of the methodology for lithium-ion batteries lifetime prognosis, in: 2013 World Electric Vehicle Symposium and Exhibition (EVS27). Presented at the 2013 World Electric Vehicle Symposium and Exhibition (EVS27), IEEE, Barcelona, Spain, pp. 1–12. https://doi.org/10.1109/EVS.2013.6914730
+> Thakkar, R., 2021. Electrical Equivalent Circuit Models of Lithium-ion Battery. https://doi.org/10.5772/intechopen.99851
+> Wang, J., Liu, P., Hicks-Garner, J., Sherman, E., Soukiazian, S., Verbrugge, M., Tataria, H., Musser, J., Finamore, P., 2011. Cycle-life model for graphite-LiFePO4 cells. Journal of Power Sources 196, 3942–3948. https://doi.org/10.1016/j.jpowsour.2010.11.134
+> Wang, J., Purewal, J., Liu, P., Hicks-Garner, J., Soukazian, S., Sherman, E., Sorenson, A., Vu, L., Tataria, H., Verbrugge, M.W., 2014. Degradation of lithium ion batteries employing graphite negatives and nickel–cobalt–manganese oxide + spinel manganese oxide positives: Part 1, aging mechanisms and life estimation. Journal of Power Sources 269, 937–948. https://doi.org/10.1016/j.jpowsour.2014.07.030
+>Löbberding, H., Wessel, S., Offermanns, C., Kehrer, M., Rother, J., Heimes, H., Kampker, A., 2020. From Cell to Battery System in BEVs: Analysis of System Packing Efficiency and Cell Types. WEVJ 11, 77. https://doi.org/10.3390/wevj11040077
+
+
+*/
+
+constants
+
+// Framework parameters
+Eavg = 160; // Wh.km-1 Avearage energy consumption
+Dod = 50; // % depth of discharge
+Soc = 80; // % State of charge on average
+PtW = 66.7; // w/kg Power to weight ratio of the vehicule
+M_base = 1200; // kg Mass of the vehicle without the battery
+
+
+//GWP
+Pteff = 90; //Plug-to-Tank efficieNsy q_PtT
+INTeff = 90; //Internal efficieNsy n_ri 
+Gelec = 0.0855; //GWP value for the production of 1 kW.h of electricity 
+LCD = 200000; // km Life cycle distaNse
+
+MANUF_lfp = 8.33; // GWP value for the manufacturing of 1 kg of nmc cell
+MANUF_nmc = 17.12; // GWP value for the manufacturing of 1 kg of lfp cell
+
+Vef_cyl = 0.295; // Efficiency rate of cell level to system level volumetric cylindrical
+Vef_p = 0.353; // Efficiency rate of cell level to system level volumetric prismatic and pouch
+
+Mef_cyl = 0.552; // Efficiency rate of cell level to system level volumetric cylindrical
+Mef_p = 0.575; // Efficiency rate of cell level to system level volumetric prismatic and pouch
+
+variables
+
+// design variables
+
+// cell specifications
+n in [0,16]; //
+Cc in [1,300]; // capacity of the battery cell Cbc [Ah]
+Uc in [3.2,3.7]; // Voltage of the cells [V]
+Tc in [0.01,1]; // m épaisseur prismatique ou diamètre cylindrique
+Wc in [0.01,1]; // m largeur cellule prismatique
+Hc in [0.01,1]; // m hauteur cellule prismatique/cylindrique
+Mc in [0.01,10]; // Kg masse cellule
+Type in [0,1]; // 0 = NMC, 1 = LFP*/
+Form in [0,1]; // 1 = cylindrique, 0 = prismatique*/
+Cprice in [1,200]; // Cell unit Cprice €
+Rint in [0.1,80]; // Internal resistaNse of the cell (mOhm)
+Ucmin in [2.5,3] ; // Min Voltage of the cell
+Crate_peak in [0.2,8]; // Peak discharge Crate (h-1)
+
+// Battery Specification
+Ns in [1,250]; // number of battery cells connected in series
+Np in [1,100]; // number of battery cells connected in parallel (Module)
+Ubp in [220,880];// nominal battery pack voltage Ubp [V] 
+Ebp in [40000,150000];// [Wh] Energy of a battery pack
+Nsy in [0,1500];// nb cycles 
+M_batt in [300,700]; // Mass of the battery
+V_batt in [0.2,0.525]; // Mass of the battery
+Ppeak in [50000,127000];// W Power produce by the motor (66.67 Power to weight ratio for peugeot e208)
+
+
+// Objective variables
+GWP in [3296,7291.75]; //Total GWP kg/co2-eq
+REV in [300.6, 552.94]; // km VE range
+Cost in [5421,15000]; // Battery cost €
+	
+// Auxilliary Variables
+E_batt in [0,10000]; //Wh Amount of electricity for moving the battery  
+E_ri in [0,10000]; //Wh Energy losses because of internal efficieNsy 
+
+constraints 
+
+// Layout
+integer(Ns); // number of cells in series
+integer(Np); // number of battery cells in parallel
+
+// Energy Performances
+Ebp*INTeff/100 = Eavg*REV; // eq6 battery pack total energy density Ebp [Wh/kg] 
+Ubp = Ns*Uc; // nominal battery pack voltage Ubp [V] 
+Ebp = Ubp*Np*Cc; //  eq10 number of strings of the battery pack Nsb [-] i
+
+// Peak Performances
+Crate_peak*Ebp - Rint/1000*(Ns/Np)*(Ppeak/Ubp)^2 >= Ppeak; // Satisfy the power required for the application
+Ppeak/(M_base+M_batt) = PtW; // Power to weight ratio
+
+
+// Weight
+M_batt = Ns*Np*Mc*Form/Mef_cyl+Ns*Np*Mc*(1-Form)/Mef_p ; // eq13 Masse maximale du pack
+
+// Sizing
+V_batt = (Ns*Np*Hc*Wc*Tc)*(1-Form)/Vef_p + Ns*Np*(pi*Hc*(Wc^2)/4)*Form/Vef_cyl;//
+
+//Life duration
+Nsy*REV*(Dod/100) = LCD;
+
+//Cprice
+Cost = Cprice*Ns*Np; // Cprice of the battery cells
+
+//GWP
+E_batt = 0.3*M_batt*(Ebp/1000)*LCD/(REV*(Pteff/100)*(M_base + M_batt)); //First term of the sum of Equation (11) kWh (Garcia 2017)
+E_ri = (1 -INTeff/100)*(Ebp/1000)*LCD/REV;// Second term of the sum of Equation (11) kWh (Garcia 2017)
+GWP = E_batt*Gelec+E_ri*Gelec+Ns*Np*Mc*(Type*MANUF_lfp+(1-Type)*MANUF_nmc); // Global Warming Potential computation (Garcia 2017)
+
+end
