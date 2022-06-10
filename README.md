@@ -2,7 +2,7 @@
 
 deposit from the experiments conducted in
 
-*Comparison between anytime exploration and optimization algorithms : a case study in embodiment design* - T. R. de Latour et al (2022)
+*On design space exploration strategy applied in preliminary design* - T. R. de Latour et al (2022)
 
 ## Content
 
